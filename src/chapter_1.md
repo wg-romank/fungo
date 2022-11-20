@@ -48,4 +48,4 @@ func (o Order) GetUserId() int32 {
 userIds := mapArray(orders, Order.GetUserId)
 ```
 
-If you are doing some data wranlging in your service chances are `map` will come in handy. If you look over your existing codebase you will spot countless instances where you perform this operation exlpicitly.
+If you are doing some data wranlging in your service chances are `map` will come in handy. If you look over your existing codebase you will spot countless instances where you perform this operation typing those `for`-loops over and over again.
