@@ -2,9 +2,9 @@
 
 Golang's standard library lacks common operations on collections (such as `map`, `filter`, `fold`, etc.) which might be familiar for people coming from functional programming languages. Thus, any trivial operation on collection would involve creating a temporary variable and iterating over it's members in a `for`-loop. While this way of structuring the program is common across many imperative languages and there is nothing wrong with it, for me personally, coming from Scala and Rust, it looked a bit verbose so I wanted to explore what would it take to implement those operations in a general way so one can do it once and leverage their power of expression ...
 
-We are going to make some simplifictaions first, we would need to pick a certain collection type, this is one of limitation's of Go's typesystem. Let's work with arrays (`[]`).
+We are going to make some simplifictaions first, we would need to pick a certain collection type, this is one of limitation's of Go's typesystem. Let's work with slices (`[]`).
 
-As for operations, let's pick `map` first. Not the `map` as lookup table / dictionary that's built in the language but an operation that given some array of type `T`, `[]T` and a function from `T` to some `U` will output an array of `U`s, `[]U`, mapping each element with provided function.
+As for operations, let's pick `map` first. Not the `map` as lookup table / dictionary that's built in the language but an operation that given some slice of type `T`, `[]T` and a function from `T` to some `U` will output an slice of `U`s, `[]U`, mapping each element with provided function.
 
 We can encode this in Go with its generics feature
 
@@ -21,7 +21,7 @@ func mapArr[T any, U any](arr []T, f func(T) U) []U {
 Okay, this is fairly abstract, we don't specify what those `T` and `U` are, but this is a very common operation that can be used frequently. So what can we do with it?
 
 ```go
-// given array of ints
+// given slice of ints
 tmp := []int{1, 2, 3}
 // we can double it's values
 doulbed := mapArr(tmp, func(n int) int { return 2 * n })

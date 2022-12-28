@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Not that kind of map</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Not that kind of map</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Filter and flat map</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Summing it up with fold/reduce</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,8 +144,8 @@
                     <main>
                         <h1 id="not-that-kind-of-map"><a class="header" href="#not-that-kind-of-map">Not that kind of map</a></h1>
 <p>Golang's standard library lacks common operations on collections (such as <code>map</code>, <code>filter</code>, <code>fold</code>, etc.) which might be familiar for people coming from functional programming languages. Thus, any trivial operation on collection would involve creating a temporary variable and iterating over it's members in a <code>for</code>-loop. While this way of structuring the program is common across many imperative languages and there is nothing wrong with it, for me personally, coming from Scala and Rust, it looked a bit verbose so I wanted to explore what would it take to implement those operations in a general way so one can do it once and leverage their power of expression ...</p>
-<p>We are going to make some simplifictaions first, we would need to pick a certain collection type, this is one of limitation's of Go's typesystem. Let's work with arrays (<code>[]</code>).</p>
-<p>As for operations, let's pick <code>map</code> first. Not the <code>map</code> as lookup table / dictionary that's built in the language but an operation that given some array of type <code>T</code>, <code>[]T</code> and a function from <code>T</code> to some <code>U</code> will output an array of <code>U</code>s, <code>[]U</code>, mapping each element with provided function.</p>
+<p>We are going to make some simplifictaions first, we would need to pick a certain collection type, this is one of limitation's of Go's typesystem. Let's work with slices (<code>[]</code>).</p>
+<p>As for operations, let's pick <code>map</code> first. Not the <code>map</code> as lookup table / dictionary that's built in the language but an operation that given some slice of type <code>T</code>, <code>[]T</code> and a function from <code>T</code> to some <code>U</code> will output an slice of <code>U</code>s, <code>[]U</code>, mapping each element with provided function.</p>
 <p>We can encode this in Go with its generics feature</p>
 <pre><code class="language-go">func mapArr[T any, U any](arr []T, f func(T) U) []U {
   res := make([]U, len(T))
@@ -156,7 +156,7 @@
 }
 </code></pre>
 <p>Okay, this is fairly abstract, we don't specify what those <code>T</code> and <code>U</code> are, but this is a very common operation that can be used frequently. So what can we do with it?</p>
-<pre><code class="language-go">// given array of ints
+<pre><code class="language-go">// given slice of ints
 tmp := []int{1, 2, 3}
 // we can double it's values
 doulbed := mapArr(tmp, func(n int) int { return 2 * n })
@@ -186,6 +186,9 @@ userIds := mapArray(orders, Order.GetUserId)
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
 
+                            <a rel="next" href="chapter_2.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -194,6 +197,9 @@ userIds := mapArray(orders, Order.GetUserId)
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
 
+                    <a rel="next" href="chapter_2.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>

@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Functional Programming with Golang</title>
-        <meta name="robots" content="noindex" />
+        <title>Summing it up with fold/reduce - Functional Programming with Golang</title>
 
 
         <!-- Custom HTML head -->
@@ -82,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Not that kind of map</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Filter and flat map</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Summing it up with fold/reduce</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Not that kind of map</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Filter and flat map</a></li><li class="chapter-item expanded "><a href="chapter_3.html" class="active"><strong aria-hidden="true">3.</strong> Summing it up with fold/reduce</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -143,96 +142,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="not-that-kind-of-map"><a class="header" href="#not-that-kind-of-map">Not that kind of map</a></h1>
-<p>Golang's standard library lacks common operations on collections (such as <code>map</code>, <code>filter</code>, <code>fold</code>, etc.) which might be familiar for people coming from functional programming languages. Thus, any trivial operation on collection would involve creating a temporary variable and iterating over it's members in a <code>for</code>-loop. While this way of structuring the program is common across many imperative languages and there is nothing wrong with it, for me personally, coming from Scala and Rust, it looked a bit verbose so I wanted to explore what would it take to implement those operations in a general way so one can do it once and leverage their power of expression ...</p>
-<p>We are going to make some simplifictaions first, we would need to pick a certain collection type, this is one of limitation's of Go's typesystem. Let's work with slices (<code>[]</code>).</p>
-<p>As for operations, let's pick <code>map</code> first. Not the <code>map</code> as lookup table / dictionary that's built in the language but an operation that given some slice of type <code>T</code>, <code>[]T</code> and a function from <code>T</code> to some <code>U</code> will output an slice of <code>U</code>s, <code>[]U</code>, mapping each element with provided function.</p>
-<p>We can encode this in Go with its generics feature</p>
-<pre><code class="language-go">func mapArr[T any, U any](arr []T, f func(T) U) []U {
-  res := make([]U, len(T))
-  for idx, e := range arr {
-    res[idx] = f(arr[idx])
-  }
-  return res
-}
-</code></pre>
-<p>Okay, this is fairly abstract, we don't specify what those <code>T</code> and <code>U</code> are, but this is a very common operation that can be used frequently. So what can we do with it?</p>
-<pre><code class="language-go">// given slice of ints
-tmp := []int{1, 2, 3}
-// we can double it's values
-doulbed := mapArr(tmp, func(n int) int { return 2 * n })
-// or we can convert then to strings
-strArr := mapArr(tmp, func(n int) int { return fmt.Sprintf(&quot;%d&quot;, n) })
-</code></pre>
-<p>But all this is not very interesting, let's consider a bit more 'real' case where we have bunch of some structs, e.g. orders and we want to get user ids from those orders and fetch user information given those user ids from the database.</p>
-<pre><code class="language-go">
-type Order struct {
-  userId int32
-}
-
-var orders []Order
-userIds := mapArray(orders, func(o Order) int32 { return o.userId }
-
-// or if you've got some getter for userId lyring around already
-func (o Order) GetUserId() int32 {
-  return o.userId
-}
-// you can directly use it when calling mapArray
-userIds := mapArray(orders, Order.GetUserId)
-</code></pre>
-<p>If you are doing some data wranlging in your service chances are <code>map</code> will come in handy. If you look over your existing codebase you will spot countless instances where you perform this operation typing those <code>for</code>-loops over and over again.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="filter-and-flat-map"><a class="header" href="#filter-and-flat-map">Filter and flat map</a></h1>
-<p>Okay we discovered this useful operation that handles cases of 1-to-1 mapping. In our previous examples all orders had <code>userId</code> thus we could map it 1-to-1. Naturally not all use-cases are handled neatly by map. Extending our previous example of working with orders let's extend data definition a bit.</p>
-<pre><code class="language-go">type Item struct { }
-
-type Order struct {
-  userId int32
-  shipped bool
-  goods []Item
-}
-</code></pre>
-<p>Here we defined a few new fields, <code>shipped</code> is a boolean flag that marks order shipping status, and <code>goods</code> is another slice of items included in order. We omit <code>Item</code> fields definition since they do not matter much for now.</p>
-<p>Now let's say we want to get a slice of shipped orders, we can do so with another generic operation commonly referred to as <code>filter</code>. This function would transform our initial slice of <code>T</code>s <code>[]T</code> to another slice of <code>T</code>s <code>[]T</code> given a predicate (condition) that is another function from <code>T</code> to <code>bool</code>.</p>
-<p>In order to answer our question of shipped orders we could use <code>filter</code> as follows</p>
-<pre><code class="language-go">shippedOrders := filter(orders, func(o Order) bool { return o.shipped })
-// again if we have a getter for shipping status already
-func (o Order) isShipped() bool { return o.shipped }
-// we can simply substitute it in filter function invocation
-shippedOrders := filter(orders, Order.isShipped)
-</code></pre>
-<p>Filter implementation is also quite simple, we just need to create a new slice that would include only items satisfying the condition of the predicate function supplied, here's one implementation using <code>append</code>.</p>
-<pre><code class="language-go">func filter[T any](ts []T, condition func(T) bool) []T {
-  var res []T
-  for _, t := range ts {
-    if condition(t) {
-      res = append(res, t)
-    }
-  }
-  return res
-}
-</code></pre>
-<p>Another use-case we could cover is getting the slice of items of orders. Since each order is including a slice of items we need to somehow flatten this structure into a single slice. <code>flatMap</code> comes to the rescue, this operation is somewhat similar to <code>map</code>, but works with 1-to-many relationships, which is the case we have with orders and items.</p>
-<p><code>flatMap</code> again can be defined generically, it takes a slice of <code>T</code>s <code>[]T</code> and a function from <code>T</code> to slice of <code>U</code>s <code>[]U</code> and produces a slice of <code>U</code>s <code>[]U</code>.</p>
-<p>How can we get a slice of items from bunch of orders using <code>flatMap</code>? Here's an example of calling it</p>
-<pre><code class="language-go">items := flatMap(orders, func(o Order) []Item { return o.goods })
-</code></pre>
-<p>And the implementation of <code>flatMap</code> itself</p>
-<pre><code class="language-go">
-func flatMap[T any](ts []T, project func(T) []U) []U {
-  var res []U
-  for _, t := range ts {
-    res = append(res, project(t)...)
-  }
-  return res
-}
-</code></pre>
-<p>Here we use Go's builtin unpack operator <code>...</code> before passing result to <code>append</code> since each call of <code>project</code> produces multiple values of type <code>U</code>. In our order-goods example <code>U</code> would be <code>Item</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="summing-it-up-with-foldreduce"><a class="header" href="#summing-it-up-with-foldreduce">Summing it up with fold/reduce</a></h1>
+                        <h1 id="summing-it-up-with-foldreduce"><a class="header" href="#summing-it-up-with-foldreduce">Summing it up with fold/reduce</a></h1>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="chapter_2.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
 
                         <div style="clear: both"></div>
@@ -241,6 +159,9 @@ func flatMap[T any](ts []T, project func(T) []U) []U {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="chapter_2.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
             </nav>
 
@@ -264,11 +185,6 @@ func flatMap[T any](ts []T, project func(T) []U) []U {
 
         <!-- Custom JS scripts -->
 
-        <script type="text/javascript">
-        window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
-        });
-        </script>
 
     </body>
 </html>
