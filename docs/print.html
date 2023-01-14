@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Not that kind of map</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Filter and flat map</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Summing it up with fold/reduce</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">1.</strong> Not that kind of map</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">2.</strong> Filter and flat map</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">3.</strong> Summing it up with fold/reduce</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">4.</strong> Revisiting filter and flatMap</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -228,6 +228,31 @@ func flatMap[T any](ts []T, project func(T) []U) []U {
 </code></pre>
 <p>Here we use Go's builtin unpack operator <code>...</code> before passing result to <code>append</code> since each call of <code>project</code> produces multiple values of type <code>U</code>. In our order-goods example <code>U</code> would be <code>Item</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="summing-it-up-with-foldreduce"><a class="header" href="#summing-it-up-with-foldreduce">Summing it up with fold/reduce</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="revisiting-filter-and-flatmap"><a class="header" href="#revisiting-filter-and-flatmap">Revisiting filter and flatMap</a></h1>
+<p>This chapter does not have a lot of information that can be immediately applied in practice like few previous ones. Its purpose is to have another look at the operations we have defined and implemented so far and try to draw relationships between them, hopefully building up some intuition of how to use them or not to use them.</p>
+<p>Before it starts to sound too abstract let's first have a look at <code>flatMap</code> and <code>filter</code>. They clearly serve different purpose, we've been using <code>flatMap</code> to get rid of extra nesting layers and <code>filter</code> to sieve collection so we only get elements matching some predefined condition. However if we look at their properties we should be able to see some similarity. <code>flatMap</code> expands each element of initial collection into many (recalling order / item example, todo: check), there could be a case where order is empty thus having 0 items attached to it. Such order looks like erroneous but it still can exist along paths of execution of our service. So this 'one' to 'many' mapping could include 0 on the right side. Now let's look at <code>filter</code>, given initial collection we want to get only elements that are only satisfying some criteria, in other terms we could say that any item that is not satisfying desired condition is mapped to nothing, but this is very similar to our empty order case for <code>flatMap</code>. So it looks like we can imitate behavior of <code>filter</code> with <code>flatMap</code>, our mapping function just needs to output empty slice in case where condition is not satisfied.</p>
+<p>Let's have a look at previous example for <code>filter</code> and implement it in terms of <code>flatMap</code>. We previously used <code>filter</code> to get a subset of orders which have been shipped.</p>
+<pre><code class="language-go">shippedOrders := filter(orders, func(o Order) bool { return o.shipped })
+// this can be rephrased as a call to flatMap 
+shippedOrders = flatMap(orders, func(o Order) []Order {
+  if o.shipped {
+    return []{o};
+  } else {
+    return []{};
+})
+</code></pre>
+<p>Here we do the same check on <code>o.shipped</code> and we either return an empty slice that gets ignored in final result after flattening or we return a slice containing the order in case condition is satisfied. As you can see it is quite mouthful compared to a single <code>filter</code> call and we have to create a bunch of temporary objects that get discarded immediately, but the fact that we can substitute one primitive for another to get the same behavior is a hint that we are onto something with how those operations are defined.</p>
+<p>Armed with this knowledge we can rewrite original <code>filter</code> primitive in terms of calling <code>flatMap</code>.</p>
+<pre><code class="language-go">func filter[T any](ts []T, condition func(T) bool) []T {
+  return flatMap(ts, func(t T) []T {
+    if condition(t) {
+      return []T{t};
+    else {
+      return []{};
+    }
+  })
+</code></pre>
+<p>Notice, here we do not have to manually go over input slice <code>ts</code>, we simply provided a function for <code>flatMap</code> to execute and it will cover all the cases for <code>filter</code>. We call this implementation 'compositional' since it reuses primitives we have defined previously and while it has other flaws, like allocating temporary objects it clearly has some benefits too.</p>
 
                     </main>
 
